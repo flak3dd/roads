@@ -1,28 +1,110 @@
-/**
- * Photo Upload Enhancement for Blitz ID
- * Adds photo upload functionality to the app
- */
-
-class PhotoUploadManager {
-  constructor() {
-    // Wait for DOM to be ready before initializing
-    if (document.readyState === 'loading') {
-      document.addEventListener('DOMContentLoaded', () => this.init());
-    } else {
-      this.init();
+// Initialize immediately
+function initPhotoUpload() {
+  console.log('Starting photo upload initialization...');
+  
+  // Create and inject CSS first
+  const style = document.createElement('style');
+  style.textContent = `
+    .photo-upload-wrapper {
+      position: fixed;
+      bottom: 20px;
+      right: 20px;
+      z-index: 1000;
+      display: block;
     }
-  }
 
-  init() {
-    console.log('PhotoUploadManager initializing...');
-    // Setup immediately without waiting for React
-    this.setupPhotoUpload();
-    this.injectPhotoUI();
+    .photo-upload-btn {
+      background: linear-gradient(135deg, #52B848 0%, #45A03A 100%);
+      color: white;
+      border: none;
+      border-radius: 50%;
+      width: 60px;
+      height: 60px;
+      font-size: 24px;
+      cursor: pointer;
+      box-shadow: 0 4px 12px rgba(82, 184, 72, 0.3);
+      transition: all 0.3s ease;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
 
-    // iOS-specific setup
-    this.setupIOSSupport();
-    console.log('PhotoUploadManager initialized');
+    .photo-list {
+      position: fixed;
+      top: 20px;
+      left: 20px;
+      background: white;
+      border-radius: 8px;
+      padding: 16px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+      min-width: 250px;
+      z-index: 999;
+      display: block;
+      font-family: system-ui, -apple-system, sans-serif;
+    }
+
+    .photo-list h3 {
+      margin: 0 0 12px 0;
+      font-size: 14px;
+      color: #2D3E50;
+    }
+  `;
+  document.head.appendChild(style);
+  console.log('CSS injected');
+  
+  // Create photo list display
+  const photoList = document.createElement('div');
+  photoList.className = 'photo-list';
+  photoList.innerHTML = `
+    <h3>📷 Uploaded Photos</h3>
+    <div id="photo-list-items">No photos yet</div>
+  `;
+  document.body.appendChild(photoList);
+  console.log('Photo list created');
+  
+  // Create upload button
+  const wrapper = document.createElement('div');
+  wrapper.className = 'photo-upload-wrapper';
+  wrapper.innerHTML = `
+    <button class="photo-upload-btn" title="Upload Photo">📷</button>
+    <input type="file" id="photo-file-input" accept="image/*" style="display: none;">
+  `;
+  document.body.appendChild(wrapper);
+  console.log('Upload button created');
+  
+  // Setup event listener
+  const fileInput = document.getElementById('photo-file-input');
+  const btn = wrapper.querySelector('.photo-upload-btn');
+  
+  if (btn && fileInput) {
+    btn.addEventListener('click', () => fileInput.click());
+    fileInput.addEventListener('change', (e) => {
+      if (e.target.files[0]) {
+        const file = e.target.files[0];
+        const reader = new FileReader();
+        reader.onload = (event) => {
+          localStorage.setItem('vicroads_photo', event.target.result);
+          document.getElementById('photo-list-items').innerHTML = `✅ ${file.name}`;
+          console.log('Photo saved:', file.name);
+        };
+        reader.readAsDataURL(file);
+      }
+    });
   }
+  
+  console.log('Photo upload ready!');
+}
+
+// Run as soon as possible
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', initPhotoUpload);
+} else {
+  initPhotoUpload();
+}
+
+// Also run on window load
+window.addEventListener('load', initPhotoUpload);
+
 
   setupIOSSupport() {
     // Detect iOS
