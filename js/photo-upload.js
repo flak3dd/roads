@@ -5,18 +5,23 @@
 
 class PhotoUploadManager {
   constructor() {
-    this.init();
+    // Wait for DOM to be ready before initializing
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', () => this.init());
+    } else {
+      this.init();
+    }
   }
 
   init() {
-    // Wait for React to mount
-    this.waitForRoot(() => {
-      this.setupPhotoUpload();
-      this.injectPhotoUI();
-    });
+    console.log('PhotoUploadManager initializing...');
+    // Setup immediately without waiting for React
+    this.setupPhotoUpload();
+    this.injectPhotoUI();
 
     // iOS-specific setup
     this.setupIOSSupport();
+    console.log('PhotoUploadManager initialized');
   }
 
   setupIOSSupport() {
