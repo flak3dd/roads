@@ -1,0 +1,15 @@
+{
+  "name": "blitz-id",
+  "version": "1.0.0",
+  "description": "A replica of the MyVicRoads app for iPhone users",
+  "scripts": {
+    "start": "npx http-server -p 3000 -c-1",
+    "serve": "npx http-server"
+  },
+  "keywords": [
+    "vicroads",
+    "license",
+    "vehicle",
+    "registration"
+  ]
+}
