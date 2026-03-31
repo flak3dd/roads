@@ -83,11 +83,36 @@
         const file = e.target.files[0];
         const reader = new FileReader();
         reader.onload = function(event) {
-          localStorage.setItem('vicroads_photo', event.target.result);
+          const photoData = event.target.result;
+          localStorage.setItem('vicroads_photo', photoData);
           document.getElementById('photo-list-items').innerHTML = '✅ ' + file.name;
+          
+          // Try to update license photo in the app
+          const licensePhotoElement = document.querySelector('[alt="License photo"]');
+          if (licensePhotoElement) {
+            licensePhotoElement.src = photoData;
+          }
+          
+          // Also store in data attributes that the app might use
+          localStorage.setItem('license_photo_url', photoData);
+          
+          // Trigger a custom event in case the app listens for it
+          window.dispatchEvent(new CustomEvent('photoUpdated', { detail: { photo: photoData } }));
+          
           console.log('Photo saved:', file.name);
         };
         reader.readAsDataURL(file);
+      }
+    });
+    
+    // Load saved photo on page load
+    window.addEventListener('load', function() {
+      const savedPhoto = localStorage.getItem('vicroads_photo');
+      if (savedPhoto) {
+        const licensePhotoElement = document.querySelector('[alt="License photo"]');
+        if (licensePhotoElement) {
+          licensePhotoElement.src = savedPhoto;
+        }
       }
     });
   </script>
