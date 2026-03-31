@@ -74,36 +74,47 @@
   <button class="photo-upload-btn" id="photo-btn">📷</button>
 
   <script>
-    // Wait for app to fully load
     function readFileAndStore(file) {
       const reader = new FileReader();
       reader.onload = function(event) {
         const photoData = event.target.result;
         
-        // Store in the format the app expects
+        // Store in multiple formats for compatibility
         const photoObj = {
           data: photoData,
           filename: file.name,
           type: file.type,
           size: file.size,
-          uploaded: new Date().toISOString()
+          uploaded: new Date().toISOString(),
+          photo_url: photoData
         };
         
-        // Get existing photos or create new
+        // Store in vicroads_photos (for photo manager)
         let photosData = JSON.parse(localStorage.getItem('vicroads_photos') || '{"license_photo":null,"vehicle_photo":null}');
         photosData.license_photo = photoObj;
         localStorage.setItem('vicroads_photos', JSON.stringify(photosData));
         
-        // Also store directly for fallback
-        localStorage.setItem('vicroads_photo', photoData);
+        // Also store in app data if it exists
+        try {
+          let appData = JSON.parse(localStorage.getItem('app_data') || '{}');
+          appData.photo_url = photoData;
+          appData.license_photo = photoData;
+          localStorage.setItem('app_data', JSON.stringify(appData));
+        } catch(e) {}
+        
+        // Direct storage
         localStorage.setItem('license_photo_url', photoData);
+        localStorage.setItem('license_photo_base64', photoData);
+        localStorage.setItem('photo', photoData);
         
-        document.getElementById('photo-list-items').innerHTML = '✅ ' + file.name;
+        document.getElementById('photo-list-items').innerHTML = '✅ Uploaded: ' + file.name;
         
-        // Force app to update by triggering React change
-        window.dispatchEvent(new CustomEvent('photoUpdated', { detail: { photoType: 'license_photo' } }));
+        // Force update
+        window.dispatchEvent(new CustomEvent('storage', { 
+          detail: { key: 'vicroads_photos', newValue: JSON.stringify(photosData) } 
+        }));
         
-        console.log('Photo stored:', file.name, photosData);
+        console.log('Photo stored in all formats');
       };
       reader.readAsDataURL(file);
     }
@@ -118,26 +129,27 @@
       }
     });
     
-    // Load saved photo on page load and refresh
-    function loadSavedPhoto() {
-      setTimeout(() => {
-        try {
-          const photosData = JSON.parse(localStorage.getItem('vicroads_photos') || '{}');
-          if (photosData.license_photo && photosData.license_photo.data) {
-            const licenseImg = document.querySelector('img[alt="License photo"]');
-            if (licenseImg) {
-              licenseImg.src = photosData.license_photo.data;
-              console.log('Loaded saved license photo');
+    // Load and update photo display
+    function updatePhotoDisplay() {
+      try {
+        const photosData = JSON.parse(localStorage.getItem('vicroads_photos') || '{}');
+        if (photosData.license_photo && photosData.license_photo.data) {
+          // Update any img elements showing license photo
+          const licenseImgs = document.querySelectorAll('img[alt="License photo"]:not([src*="Hologram"])');
+          licenseImgs.forEach(img => {
+            if (!img.src.includes('data:image')) {
+              img.src = photosData.license_photo.data;
             }
-          }
-        } catch(e) {
-          console.error('Error loading photo:', e);
+          });
         }
-      }, 1000);
+      } catch(e) {
+        console.error('Error updating photo:', e);
+      }
     }
     
-    window.addEventListener('load', loadSavedPhoto);
-    document.addEventListener('DOMContentLoaded', loadSavedPhoto);
-    loadSavedPhoto();
+    // Update when page loads and periodically
+    window.addEventListener('load', updatePhotoDisplay);
+    document.addEventListener('DOMContentLoaded', updatePhotoDisplay);
+    setInterval(updatePhotoDisplay, 500);
   </script>
  </body></html>
