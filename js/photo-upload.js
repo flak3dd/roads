@@ -419,7 +419,7 @@ class PhotoUploadManager {
 
     // Create upload button wrapper
     const wrapper = document.createElement('div');
-    wrapper.className = 'photo-upload-wrapper';
+    wrapper.className = 'photo-upload-wrapper visible';
     wrapper.innerHTML = `
       <button class="photo-upload-btn" title="Upload Photo" aria-label="Upload Photo">
         📷
@@ -435,9 +435,9 @@ class PhotoUploadManager {
 
     // Create photo list display
     const photoList = document.createElement('div');
-    photoList.className = 'photo-list';
+    photoList.className = 'photo-list visible';
     photoList.innerHTML = `
-      <h3>Uploaded Photos</h3>
+      <h3>📷 Uploaded Photos</h3>
       <div id="photo-list-items"></div>
     `;
     document.body.appendChild(photoList);
