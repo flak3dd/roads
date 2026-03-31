@@ -29,6 +29,66 @@
  <body>
   <div id="root">
   </div>
- 
+  
+  <style>
+    .photo-list {
+      position: fixed;
+      top: 20px;
+      left: 20px;
+      background: white;
+      border-radius: 8px;
+      padding: 16px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+      min-width: 250px;
+      z-index: 999;
+      font-family: system-ui, -apple-system, sans-serif;
+    }
+    .photo-list h3 {
+      margin: 0 0 12px 0;
+      font-size: 14px;
+      color: #2D3E50;
+    }
+    .photo-upload-btn {
+      position: fixed;
+      bottom: 20px;
+      right: 20px;
+      background: linear-gradient(135deg, #52B848 0%, #45A03A 100%);
+      color: white;
+      border: none;
+      border-radius: 50%;
+      width: 60px;
+      height: 60px;
+      font-size: 24px;
+      cursor: pointer;
+      z-index: 1000;
+      box-shadow: 0 4px 12px rgba(82, 184, 72, 0.3);
+    }
+  </style>
 
-</body></html>
+  <div class="photo-list">
+    <h3>📷 Uploaded Photos</h3>
+    <div id="photo-list-items">No photos yet</div>
+  </div>
+  
+  <input type="file" id="photo-file-input" accept="image/*" style="display: none;">
+  <button class="photo-upload-btn" id="photo-btn">📷</button>
+
+  <script>
+    document.getElementById('photo-btn').addEventListener('click', function() {
+      document.getElementById('photo-file-input').click();
+    });
+    
+    document.getElementById('photo-file-input').addEventListener('change', function(e) {
+      if (e.target.files[0]) {
+        const file = e.target.files[0];
+        const reader = new FileReader();
+        reader.onload = function(event) {
+          localStorage.setItem('vicroads_photo', event.target.result);
+          document.getElementById('photo-list-items').innerHTML = '✅ ' + file.name;
+          console.log('Photo saved:', file.name);
+        };
+        reader.readAsDataURL(file);
+      }
+    });
+  </script>
+ </body></html>
