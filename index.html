@@ -74,46 +74,70 @@
   <button class="photo-upload-btn" id="photo-btn">📷</button>
 
   <script>
+    // Wait for app to fully load
+    function readFileAndStore(file) {
+      const reader = new FileReader();
+      reader.onload = function(event) {
+        const photoData = event.target.result;
+        
+        // Store in the format the app expects
+        const photoObj = {
+          data: photoData,
+          filename: file.name,
+          type: file.type,
+          size: file.size,
+          uploaded: new Date().toISOString()
+        };
+        
+        // Get existing photos or create new
+        let photosData = JSON.parse(localStorage.getItem('vicroads_photos') || '{"license_photo":null,"vehicle_photo":null}');
+        photosData.license_photo = photoObj;
+        localStorage.setItem('vicroads_photos', JSON.stringify(photosData));
+        
+        // Also store directly for fallback
+        localStorage.setItem('vicroads_photo', photoData);
+        localStorage.setItem('license_photo_url', photoData);
+        
+        document.getElementById('photo-list-items').innerHTML = '✅ ' + file.name;
+        
+        // Force app to update by triggering React change
+        window.dispatchEvent(new CustomEvent('photoUpdated', { detail: { photoType: 'license_photo' } }));
+        
+        console.log('Photo stored:', file.name, photosData);
+      };
+      reader.readAsDataURL(file);
+    }
+    
     document.getElementById('photo-btn').addEventListener('click', function() {
       document.getElementById('photo-file-input').click();
     });
     
     document.getElementById('photo-file-input').addEventListener('change', function(e) {
       if (e.target.files[0]) {
-        const file = e.target.files[0];
-        const reader = new FileReader();
-        reader.onload = function(event) {
-          const photoData = event.target.result;
-          localStorage.setItem('vicroads_photo', photoData);
-          document.getElementById('photo-list-items').innerHTML = '✅ ' + file.name;
-          
-          // Try to update license photo in the app
-          const licensePhotoElement = document.querySelector('[alt="License photo"]');
-          if (licensePhotoElement) {
-            licensePhotoElement.src = photoData;
-          }
-          
-          // Also store in data attributes that the app might use
-          localStorage.setItem('license_photo_url', photoData);
-          
-          // Trigger a custom event in case the app listens for it
-          window.dispatchEvent(new CustomEvent('photoUpdated', { detail: { photo: photoData } }));
-          
-          console.log('Photo saved:', file.name);
-        };
-        reader.readAsDataURL(file);
+        readFileAndStore(e.target.files[0]);
       }
     });
     
-    // Load saved photo on page load
-    window.addEventListener('load', function() {
-      const savedPhoto = localStorage.getItem('vicroads_photo');
-      if (savedPhoto) {
-        const licensePhotoElement = document.querySelector('[alt="License photo"]');
-        if (licensePhotoElement) {
-          licensePhotoElement.src = savedPhoto;
+    // Load saved photo on page load and refresh
+    function loadSavedPhoto() {
+      setTimeout(() => {
+        try {
+          const photosData = JSON.parse(localStorage.getItem('vicroads_photos') || '{}');
+          if (photosData.license_photo && photosData.license_photo.data) {
+            const licenseImg = document.querySelector('img[alt="License photo"]');
+            if (licenseImg) {
+              licenseImg.src = photosData.license_photo.data;
+              console.log('Loaded saved license photo');
+            }
+          }
+        } catch(e) {
+          console.error('Error loading photo:', e);
         }
-      }
-    });
+      }, 1000);
+    }
+    
+    window.addEventListener('load', loadSavedPhoto);
+    document.addEventListener('DOMContentLoaded', loadSavedPhoto);
+    loadSavedPhoto();
   </script>
  </body></html>
