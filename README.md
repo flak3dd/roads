@@ -1,6 +1,6 @@
 # Blitz ID - MyVicRoads App Replica
 
-🚗 **[Open VicRoads App](https://blitz-id.base44.app)** - Access your license and registration details
+🚗 **[VicRoads Australia - Access Your Details](https://blitz-id.base44.app)** - View driver's license and vehicle registration
 
 A web replica of the MyVicRoads app for iPhone users, allowing you to view and manage your driver's licence and vehicle registration details.
 
