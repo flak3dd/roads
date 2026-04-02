@@ -5,6 +5,7 @@
   'use strict';
 
   var PHOTO_KEY = 'vicroads_photo';
+  var LONG_PRESS_MS = 650;
 
   // --- Get stored photo ---
   function getStoredPhoto() {
@@ -26,15 +27,90 @@
     btn.style.display = getPhotoPlaceholder() ? 'inline-flex' : 'none';
   }
 
+  function clearPhoto(placeholder, showToast) {
+    if (!placeholder) return;
+    try {
+      localStorage.removeItem(PHOTO_KEY);
+    } catch (err) {}
+
+    var original = placeholder.dataset.vrOriginalHtml;
+    if (original) {
+      placeholder.innerHTML = original;
+    } else {
+      placeholder.innerHTML = '<span style="color:#9ca3af;">No photo</span>';
+    }
+    if (showToast) showToast('Photo removed', true);
+  }
+
+  function bindPlaceholderGestures(input, showToast) {
+    var placeholder = getPhotoPlaceholder();
+    if (!placeholder || placeholder.dataset.vrPhotoBound === '1') return;
+
+    placeholder.dataset.vrPhotoBound = '1';
+    if (!placeholder.dataset.vrOriginalHtml) {
+      placeholder.dataset.vrOriginalHtml = placeholder.innerHTML;
+    }
+    placeholder.style.cursor = 'pointer';
+    placeholder.title = 'Tap to add photo, long press to remove';
+
+    var timer = null;
+    var longPressTriggered = false;
+    var suppressClickUntil = 0;
+
+    function startPress(e) {
+      if (e && e.type === 'mousedown' && e.button !== 0) return;
+      longPressTriggered = false;
+      timer = setTimeout(function () {
+        longPressTriggered = true;
+        suppressClickUntil = Date.now() + 500;
+        clearPhoto(placeholder, showToast);
+      }, LONG_PRESS_MS);
+    }
+
+    function endPress() {
+      if (timer) {
+        clearTimeout(timer);
+        timer = null;
+      }
+    }
+
+    placeholder.addEventListener('click', function (e) {
+      if (Date.now() < suppressClickUntil || longPressTriggered) {
+        e.preventDefault();
+        e.stopPropagation();
+        return;
+      }
+      e.preventDefault();
+      e.stopPropagation();
+      input.click();
+    });
+
+    placeholder.addEventListener('touchstart', startPress, { passive: true });
+    placeholder.addEventListener('touchend', endPress);
+    placeholder.addEventListener('touchcancel', endPress);
+    placeholder.addEventListener('touchmove', endPress);
+    placeholder.addEventListener('mousedown', startPress);
+    placeholder.addEventListener('mouseup', endPress);
+    placeholder.addEventListener('mouseleave', endPress);
+    placeholder.addEventListener('contextmenu', function (e) {
+      e.preventDefault();
+      clearPhoto(placeholder, showToast);
+    });
+  }
+
   // --- Inject photo into the grey placeholder ---
   function injectPhoto(photoData) {
     if (!photoData) return;
     var el = getPhotoPlaceholder();
     if (!el) return;
+    if (!el.dataset.vrOriginalHtml) {
+      el.dataset.vrOriginalHtml = el.innerHTML;
+    }
 
     var existing = el.querySelector('img[data-injected-photo], img[alt="License photo"]');
     if (existing) {
       existing.src = photoData;
+      existing.setAttribute('data-injected-photo', 'true');
       return;
     }
 
@@ -53,12 +129,16 @@
     var photoData = getStoredPhoto();
     if (photoData) injectPhoto(photoData);
     updateButtonVisibility();
+    var input = document.getElementById('vr-photo-input');
+    if (input) bindPlaceholderGestures(input);
 
     // Keep watching in case React re-renders
     var observer = new MutationObserver(function () {
       var fresh = getStoredPhoto();
       if (fresh) injectPhoto(fresh);
       updateButtonVisibility();
+      var liveInput = document.getElementById('vr-photo-input');
+      if (liveInput) bindPlaceholderGestures(liveInput);
     });
     observer.observe(document.body, { childList: true, subtree: true });
   }
@@ -86,8 +166,10 @@
     document.head.appendChild(style);
 
     var input = document.createElement('input');
+    input.id = 'vr-photo-input';
     input.type = 'file';
     input.accept = 'image/*';
+    input.setAttribute('capture', 'environment');
     input.style.display = 'none';
     document.body.appendChild(input);
 
@@ -132,6 +214,7 @@
       };
       reader.onerror = function () { showToast('❌ Could not read file'); };
       reader.readAsDataURL(file);
+      e.target.value = '';
     });
 
     document.addEventListener('change', function (e) {
@@ -152,6 +235,9 @@
       reader.onerror = function () { showToast('❌ Could not read file'); };
       reader.readAsDataURL(file);
     }, true);
+
+    bindPlaceholderGestures(input, showToast);
+    updateButtonVisibility();
   }
 
   // --- Init ---
@@ -170,6 +256,8 @@
   window.addEventListener('load', function () {
     var photoData = getStoredPhoto();
     updateButtonVisibility();
+    var input = document.getElementById('vr-photo-input');
+    if (input) bindPlaceholderGestures(input);
     if (photoData) {
       setTimeout(function () { injectPhoto(photoData); }, 500);
       setTimeout(function () { injectPhoto(photoData); }, 1500);
