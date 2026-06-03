@@ -33,38 +33,15 @@
     return 'p_' + Date.now().toString(36) + '_' + Math.random().toString(36).substr(2, 5);
   }
 
-  // Capture current app state as profile data
+  // Capture current app state from localStorage (config page saves here)
   function captureCurrentState() {
     var state = { fields: {}, photo: null, timestamp: new Date().toISOString() };
 
-    // Grab fields from current saved data
     try {
       var saved = JSON.parse(localStorage.getItem(SAVED_DATA_KEY));
       if (saved && saved.fields) state.fields = saved.fields;
     } catch (e) {}
 
-    // Also scan DOM for current values (may be newer than saved)
-    var labels = document.querySelectorAll('p.text-sm');
-    for (var i = 0; i < labels.length; i++) {
-      var labelText = (labels[i].textContent || '').trim();
-      var valueEl = labels[i].nextElementSibling;
-      if (valueEl && valueEl.tagName === 'P' && !valueEl.querySelector('input')) {
-        var val = valueEl.textContent.trim();
-        if (val && val !== 'Not set') state.fields[labelText.toLowerCase()] = val;
-      }
-    }
-
-    // Get name
-    var headings = document.querySelectorAll('h2');
-    for (var j = 0; j < headings.length; j++) {
-      if (headings[j].classList.contains('font-bold')) {
-        var name = headings[j].textContent.trim();
-        if (name && name !== 'NAME NOT SET') state.fields['name'] = name;
-        break;
-      }
-    }
-
-    // Photo
     var photo = localStorage.getItem(PHOTO_KEY);
     if (photo) state.photo = photo;
 
@@ -312,14 +289,7 @@
 
   // --- Profile button (replaces old save UI) ---
   function injectProfileButton() {
-    if (document.getElementById('vr-profile-trigger')) return;
-
-    var btn = document.createElement('button');
-    btn.id = 'vr-profile-trigger';
-    btn.innerHTML = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg> Profiles';
-    btn.title = 'Manage profiles';
-    document.body.appendChild(btn);
-    btn.addEventListener('click', function (e) { e.stopPropagation(); showProfilePanel(); });
+    return;
   }
 
   function injectStyles() {
