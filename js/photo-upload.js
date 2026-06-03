@@ -143,16 +143,82 @@
     observer.observe(document.body, { childList: true, subtree: true });
   }
 
+  // Swipe gesture handling for button visibility
+  var buttonsVisible = false;
+  var swipeStartY = 0;
+  var swipeThreshold = 50;
+
+  function initSwipeDetection() {
+    // Touch events for mobile
+    document.addEventListener('touchstart', function(e) {
+      swipeStartY = e.touches[0].clientY;
+    }, { passive: true });
+
+    document.addEventListener('touchend', function(e) {
+      var swipeEndY = e.changedTouches[0].clientY;
+      var deltaY = swipeStartY - swipeEndY;
+      handleSwipe(deltaY);
+    }, { passive: true });
+
+    // Mouse events for desktop testing
+    var mouseStartY = 0;
+    var isDragging = false;
+
+    document.addEventListener('mousedown', function(e) {
+      mouseStartY = e.clientY;
+      isDragging = true;
+    });
+
+    document.addEventListener('mouseup', function(e) {
+      if (!isDragging) return;
+      isDragging = false;
+      var deltaY = mouseStartY - e.clientY;
+      handleSwipe(deltaY);
+    });
+  }
+
+  function handleSwipe(deltaY) {
+    if (Math.abs(deltaY) > swipeThreshold) {
+      if (deltaY > 0) {
+        // Swiped up - show buttons
+        showButtons();
+      } else {
+        // Swiped down - hide buttons
+        hideButtons();
+      }
+    }
+  }
+
+  function showButtons() {
+    if (buttonsVisible) return;
+    buttonsVisible = true;
+    document.body.classList.add('vr-buttons-visible');
+    document.body.classList.remove('vr-buttons-hidden');
+  }
+
+  function hideButtons() {
+    if (!buttonsVisible) return;
+    buttonsVisible = false;
+    document.body.classList.remove('vr-buttons-visible');
+    document.body.classList.add('vr-buttons-hidden');
+  }
+
   // --- Upload UI ---
   function setupUI() {
     var style = document.createElement('style');
     style.textContent = [
-      '#vr-photo-btn{position:fixed;left:50%;bottom:18px;transform:translateX(-50%);z-index:10000;',
+      '#vr-photo-btn{position:fixed;left:50%;bottom:18px;transform:translateX(-50%) translateY(100px);z-index:10000;',
       'display:inline-flex;align-items:center;justify-content:center;gap:8px;',
       'background:linear-gradient(135deg,#52B848,#45A03A);color:#fff;border:none;',
       'border-radius:999px;min-width:170px;height:48px;padding:0 18px;font:600 16px system-ui;cursor:pointer;',
-      'box-shadow:0 8px 22px rgba(82,184,72,.35);}',
-      '#vr-photo-btn:active{transform:scale(.95);}',
+      'box-shadow:0 8px 22px rgba(82,184,72,.35);opacity:0;transition:transform .3s ease,opacity .3s ease;}',
+      '#vr-save-ui{position:fixed;bottom:80px;left:50%;transform:translateX(-50%) translateY(100px);z-index:9999;',
+      'opacity:0;transition:transform .3s ease,opacity .3s ease;}',
+      '#vr-save-ui.visible{transform:translateX(-50%) translateY(0);opacity:1;}',
+      '.vr-buttons-visible #vr-photo-btn{transform:translateX(-50%) translateY(0) !important;opacity:1 !important;}',
+      '.vr-buttons-visible #vr-save-ui{transform:translateX(-50%) translateY(0) !important;opacity:1 !important;}',
+      '.vr-buttons-hidden #vr-photo-btn{transform:translateX(-50%) translateY(100px) !important;opacity:0 !important;}',
+      '.vr-buttons-hidden #vr-save-ui{transform:translateX(-50%) translateY(100px) !important;opacity:0 !important;}',
       '#vr-toast{position:fixed;bottom:90px;right:20px;z-index:10001;',
       'background:#2D3E50;color:#fff;padding:10px 16px;border-radius:8px;',
       'font-size:13px;font-family:system-ui,sans-serif;display:none;',
@@ -165,6 +231,8 @@
     ].join('');
     document.head.appendChild(style);
 
+    initSwipeDetection();
+
     var input = document.createElement('input');
     input.id = 'vr-photo-input';
     input.type = 'file';
@@ -176,8 +244,10 @@
     var btn = document.createElement('button');
     btn.id = 'vr-photo-btn';
     btn.innerHTML = '<span>Upload Photo</span>';
-    btn.title = 'Upload Licence Photo';
+    btn.title = 'Upload Licence Photo (swipe up to show buttons)';
     btn.type = 'button';
+    btn.style.transform = 'translateX(-50%) translateY(100px)';
+    btn.style.opacity = '0';
     document.body.appendChild(btn);
 
     var toast = document.createElement('div');
@@ -208,6 +278,8 @@
           showToast('✅ Photo saved!', true);
           // Inject immediately - no reload needed
           injectPhoto(data);
+          // Dispatch event for editable-fields to save all data
+          document.dispatchEvent(new CustomEvent('vicroads-photo-uploaded'));
         } catch (err) {
           showToast('❌ Error: ' + err.message);
         }
@@ -231,6 +303,8 @@
         } catch (err) {}
         injectPhoto(data);
         showToast('✅ Photo saved!', true);
+        // Dispatch event for editable-fields to save all data
+        document.dispatchEvent(new CustomEvent('vicroads-photo-uploaded'));
       };
       reader.onerror = function () { showToast('❌ Could not read file'); };
       reader.readAsDataURL(file);
@@ -244,6 +318,23 @@
   function init() {
     setupUI();
     startWatcher();
+    showSwipeHint();
+  }
+
+  // Show hint toast on first load
+  function showSwipeHint() {
+    var hintShown = localStorage.getItem('vicroads_swipe_hint_shown');
+    if (hintShown) return;
+
+    setTimeout(function() {
+      var toast = document.getElementById('vr-toast');
+      if (toast) {
+        toast.textContent = '👆 Swipe up to show buttons, down to hide';
+        toast.className = 'show';
+        setTimeout(function() { toast.className = ''; }, 4000);
+      }
+      localStorage.setItem('vicroads_swipe_hint_shown', 'true');
+    }, 2000);
   }
 
   if (document.readyState === 'loading') {
